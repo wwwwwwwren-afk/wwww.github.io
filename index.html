@@ -5,42 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的生活记录</title>
     <style>
-        body {
-            font-family: 'Noto Serif', '思源宋体', serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #fafafa;
-            margin: 0;
-            padding: 0;
+        /* 保留原有样式，新增以下内容 */
+        .tag-container {
+            margin: 10px 0;
         }
-        .container {
-            display: flex;
-            max-width: 1200px;
-            margin: 0 auto;
+        .tag {
+            display: inline-block;
+            background: #f0f0f0;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-right: 5px;
+            cursor: pointer;
         }
-        .sidebar {
-            width: 250px;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        .tag:hover {
+            background: #e0e0e0;
         }
-        .main-content {
-            flex: 1;
-            padding: 20px;
-        }
-        .entry {
-            background: #fff;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 5px rgba(0,0,0,0.05);
-        }
-        .entry-date {
-            color: #666;
+        .delete-btn {
+            color: #ff4444;
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin-left: 10px;
             font-size: 0.9em;
         }
-        .entry-content {
-            margin-top: 10px;
+        .empty-state {
+            text-align: center;
+            padding: 50px 0;
+            color: #999;
         }
     </style>
 </head>
@@ -50,50 +42,263 @@
             <h2>我的日记</h2>
             <nav>
                 <ul>
-                    <li><a href="#">全部记录</a></li>
-                    <li><a href="#">按标签</a></li>
-                    <li><a href="#">按日期</a></li>
+                    <li><a href="#" class="nav-link" data-filter="all">全部记录</a></li>
+                    <li><a href="#" class="nav-link" data-filter="tag">按标签</a></li>
+                    <li><a href="#" class="nav-link" data-filter="date">按日期</a></li>
                 </ul>
             </nav>
+            <div class="tag-list" style="margin: 20px 0;">
+                <p>常用标签：</p>
+                <!-- 标签会动态生成 -->
+            </div>
             <div class="search-box">
                 <input type="text" placeholder="搜索日记...">
                 <button>搜索</button>
             </div>
         </aside>
         <main class="main-content">
-            <article class="entry">
-                <div class="entry-date">2025年8月22日</div>
-                <h3 class="entry-title">美好的一天</h3>
-                <div class="entry-content">
-                    <p>今天天气很好，去公园散步，看到了美丽的日落...</p>
+            <button class="add-entry-btn" id="show-form-btn">写新日记</button>
+            
+            <div class="entry-form" id="entry-form">
+                <div class="form-group">
+                    <label for="entry-title-input">标题</label>
+                    <input type="text" id="entry-title-input" placeholder="输入日记标题">
                 </div>
-            </article>
-            <article class="entry">
-                <div class="entry-date">2025年8月21日</div>
-                <h3 class="entry-title">尝试新菜谱</h3>
-                <div class="entry-content">
-                    <p>今天尝试做了意大利面，味道还不错，下次可以再加点香料...</p>
+                <div class="form-group">
+                    <label for="entry-date-input">日期</label>
+                    <input type="date" id="entry-date-input">
                 </div>
-            </article>
+                <div class="form-group">
+                    <label for="entry-tags-input">标签（用逗号分隔）</label>
+                    <input type="text" id="entry-tags-input" placeholder="例如：美食,旅行">
+                </div>
+                <div class="form-group">
+                    <label for="entry-content-input">内容</label>
+                    <textarea id="entry-content-input" placeholder="记录今天的生活..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>上传图片</label>
+                    <input type="file" id="image-upload" accept="image/*">
+                    <div class="preview-container">
+                        <img id="preview-image" alt="预览图">
+                    </div>
+                </div>
+                <button class="submit-btn" id="save-entry-btn">保存日记</button>
+            </div>
+            
+            <div id="entries-container">
+                <!-- 日记会动态加载 -->
+            </div>
         </main>
     </div>
     <script>
-        // 简单的搜索功能示例
-        document.querySelector('.search-box button').addEventListener('click', function() {
-            const searchTerm = document.querySelector('.search-box input').value.toLowerCase();
-            const entries = document.querySelectorAll('.entry');
+        // 初始化日期为今天
+        document.getElementById('entry-date-input').valueAsDate = new Date();
+        
+        // 本地存储相关操作
+        const STORAGE_KEY = 'lifeJournalEntries';
+        
+        // 获取所有日记
+        function getEntries() {
+            const entries = localStorage.getItem(STORAGE_KEY);
+            return entries ? JSON.parse(entries) : [];
+        }
+        
+        // 保存日记到本地存储
+        function saveEntry(entry) {
+            const entries = getEntries();
+            entries.unshift(entry); // 新增日记放在最前面
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+            renderEntries();
+            updateTagList();
+        }
+        
+        // 删除日记
+        function deleteEntry(id) {
+            if(confirm('确定要删除这篇日记吗？')) {
+                let entries = getEntries();
+                entries = entries.filter(entry => entry.id !== id);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+                renderEntries();
+                updateTagList();
+            }
+        }
+        
+        // 渲染所有日记
+        function renderEntries(filteredEntries = null) {
+            const container = document.getElementById('entries-container');
+            const entries = filteredEntries || getEntries();
+            
+            if(entries.length === 0) {
+                container.innerHTML = '<div class="empty-state">还没有记录呢，开始写第一篇日记吧～</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            entries.forEach(entry => {
+                const entryEl = document.createElement('article');
+                entryEl.className = 'entry';
+                entryEl.innerHTML = `
+                    <div class="entry-date">${entry.date}</div>
+                    <h3 class="entry-title">
+                        ${entry.title}
+                        <button class="delete-btn" data-id="${entry.id}">删除</button>
+                    </h3>
+                    <div class="tag-container">
+                        ${entry.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                    <div class="entry-content">
+                        <p>${entry.content}</p>
+                        ${entry.image ? `<img src="${entry.image}" style="max-width:100%;margin-top:10px;border-radius:4px;">` : ''}
+                    </div>
+                `;
+                container.appendChild(entryEl);
+            });
+            
+            // 绑定删除按钮事件
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    deleteEntry(this.getAttribute('data-id'));
+                });
+            });
+        }
+        
+        // 更新标签列表
+        function updateTagList() {
+            const entries = getEntries();
+            const tagMap = {};
             
             entries.forEach(entry => {
-                const title = entry.querySelector('.entry-title').textContent.toLowerCase();
-                const content = entry.querySelector('.entry-content').textContent.toLowerCase();
+                entry.tags.forEach(tag => {
+                    tagMap[tag] = (tagMap[tag] || 0) + 1;
+                });
+            });
+            
+            const tagListEl = document.querySelector('.tag-list');
+            let tagsHtml = '<p>常用标签：</p>';
+            
+            Object.keys(tagMap).forEach(tag => {
+                tagsHtml += `<span class="tag" data-tag="${tag}">${tag} (${tagMap[tag]})</span>`;
+            });
+            
+            tagListEl.innerHTML = tagsHtml;
+            
+            // 绑定标签点击事件
+            document.querySelectorAll('.tag[data-tag]').forEach(tagEl => {
+                tagEl.addEventListener('click', function() {
+                    const tag = this.getAttribute('data-tag');
+                    const entries = getEntries();
+                    const filtered = entries.filter(entry => entry.tags.includes(tag));
+                    renderEntries(filtered);
+                });
+            });
+        }
+        
+        // 显示/隐藏表单
+        document.getElementById('show-form-btn').addEventListener('click', function() {
+            const form = document.getElementById('entry-form');
+            form.style.display = form.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        // 图片预览
+        document.getElementById('image-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const previewImg = document.getElementById('preview-image');
+                    previewImg.src = event.target.result;
+                    previewImg.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // 保存日记
+        document.getElementById('save-entry-btn').addEventListener('click', function() {
+            const title = document.getElementById('entry-title-input').value;
+            const dateInput = document.getElementById('entry-date-input').value;
+            const tagsInput = document.getElementById('entry-tags-input').value;
+            const content = document.getElementById('entry-content-input').value;
+            const image = document.getElementById('preview-image').src || '';
+            
+            if (!title || !dateInput || !content) {
+                alert('请填写标题、日期和内容');
+                return;
+            }
+            
+            // 格式化日期
+            const dateObj = new Date(dateInput);
+            const formattedDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
+            
+            // 处理标签
+            const tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim()) : [];
+            
+            // 创建日记对象
+            const newEntry = {
+                id: Date.now().toString(), // 用时间戳作为唯一ID
+                title,
+                date: formattedDate,
+                tags,
+                content,
+                image: image !== 'about:blank' ? image : ''
+            };
+            
+            // 保存到本地存储
+            saveEntry(newEntry);
+            
+            // 重置表单
+            document.getElementById('entry-title-input').value = '';
+            document.getElementById('entry-tags-input').value = '';
+            document.getElementById('entry-content-input').value = '';
+            document.getElementById('image-upload').value = '';
+            document.getElementById('preview-image').src = '';
+            document.getElementById('preview-image').style.display = 'none';
+            document.getElementById('entry-form').style.display = 'none';
+            
+            alert('日记保存成功！');
+        });
+        
+        // 搜索功能
+        document.querySelector('.search-box button').addEventListener('click', function() {
+            const searchTerm = document.querySelector('.search-box input').value.toLowerCase();
+            const entries = getEntries();
+            const filtered = entries.filter(entry => 
+                entry.title.toLowerCase().includes(searchTerm) || 
+                entry.content.toLowerCase().includes(searchTerm) ||
+                entry.tags.some(tag => tag.toLowerCase().includes(searchTerm))
+            );
+            renderEntries(filtered);
+        });
+        
+        // 导航筛选
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const filter = this.getAttribute('data-filter');
+                const entries = getEntries();
                 
-                if(title.includes(searchTerm) || content.includes(searchTerm)) {
-                    entry.style.display = 'block';
+                if (filter === 'date') {
+                    // 按日期排序（新的在前）
+                    const sorted = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+                    renderEntries(sorted);
+                } else if (filter === 'tag') {
+                    // 显示所有带标签的
+                    const tagged = entries.filter(entry => entry.tags.length > 0);
+                    renderEntries(tagged);
                 } else {
-                    entry.style.display = 'none';
+                    // 全部
+                    renderEntries();
                 }
             });
+        });
+        
+        // 页面加载时渲染日记
+        window.addEventListener('load', function() {
+            renderEntries();
+            updateTagList();
         });
     </script>
 </body>
 </html>
+​
