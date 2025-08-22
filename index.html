@@ -1,10 +1,99 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-  <title>我的第一个 GitHub 网站</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的生活记录</title>
+    <style>
+        body {
+            font-family: 'Noto Serif', '思源宋体', serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #fafafa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .sidebar {
+            width: 250px;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+        .entry {
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.05);
+        }
+        .entry-date {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .entry-content {
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Hello, GitHub Pages!</h1>
-  <p>这是通过 GitHub Pages 搭建的网站。</p>
+    <div class="container">
+        <aside class="sidebar">
+            <h2>我的日记</h2>
+            <nav>
+                <ul>
+                    <li><a href="#">全部记录</a></li>
+                    <li><a href="#">按标签</a></li>
+                    <li><a href="#">按日期</a></li>
+                </ul>
+            </nav>
+            <div class="search-box">
+                <input type="text" placeholder="搜索日记...">
+                <button>搜索</button>
+            </div>
+        </aside>
+        <main class="main-content">
+            <article class="entry">
+                <div class="entry-date">2025年8月22日</div>
+                <h3 class="entry-title">美好的一天</h3>
+                <div class="entry-content">
+                    <p>今天天气很好，去公园散步，看到了美丽的日落...</p>
+                </div>
+            </article>
+            <article class="entry">
+                <div class="entry-date">2025年8月21日</div>
+                <h3 class="entry-title">尝试新菜谱</h3>
+                <div class="entry-content">
+                    <p>今天尝试做了意大利面，味道还不错，下次可以再加点香料...</p>
+                </div>
+            </article>
+        </main>
+    </div>
+    <script>
+        // 简单的搜索功能示例
+        document.querySelector('.search-box button').addEventListener('click', function() {
+            const searchTerm = document.querySelector('.search-box input').value.toLowerCase();
+            const entries = document.querySelectorAll('.entry');
+            
+            entries.forEach(entry => {
+                const title = entry.querySelector('.entry-title').textContent.toLowerCase();
+                const content = entry.querySelector('.entry-content').textContent.toLowerCase();
+                
+                if(title.includes(searchTerm) || content.includes(searchTerm)) {
+                    entry.style.display = 'block';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
